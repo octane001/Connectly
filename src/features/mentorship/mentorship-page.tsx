@@ -19,6 +19,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import { MENTORSHIP_CATEGORIES } from "@/lib/constants";
 import { queryClient } from "@/lib/query-client";
 import { mentorshipRequestSchema, type MentorshipRequestInput } from "./schemas";
+import { getProfileDisplayOrganization, getProfileDisplayTitle } from "@/types/domain";
 
 export function MentorshipPage() {
   const profile = useAuthStore((s) => s.profile)!;
@@ -141,7 +142,7 @@ export function MentorshipPage() {
                   <p className="font-medium">{req.mentorName ?? "Mentor"}</p>
                   <p className="text-sm text-muted-foreground">{req.category}</p>
                 </div>
-                <Badge variant={req.status === "ACCEPTED" ? "success" : req.status === "DECLINED" ? "destructive" : "warning"}>{req.status}</Badge>
+                <Badge variant={req.status === "ACCEPTED" ? "outline" : req.status === "DECLINED" ? "destructive" : "secondary"}>{req.status}</Badge>
               </div>
             ))}
           </CardContent>
@@ -183,7 +184,9 @@ export function MentorshipPage() {
                         <Avatar name={match.profile.fullName} src={match.profile.avatarUrl} className="h-12 w-12" />
                         <div>
                           <p className="font-medium">{match.profile.fullName}</p>
-                          <p className="text-sm text-muted-foreground">{match.profile.designation} at {match.profile.company}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {[getProfileDisplayTitle(match.profile), getProfileDisplayOrganization(match.profile)].filter(Boolean).join(" at ")}
+                          </p>
                         </div>
                       </div>
                       <Badge variant="success">{match.score}%</Badge>

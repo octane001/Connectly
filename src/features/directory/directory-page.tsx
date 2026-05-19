@@ -16,7 +16,13 @@ import { DEPARTMENTS, INDUSTRIES, MENTORSHIP_CATEGORIES } from "@/lib/constants"
 import { listProfiles, startConversation, submitMentorshipRequest } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
 import { useToast } from "@/components/ui/use-toast";
-import type { DirectoryFilters, Profile } from "@/types/domain";
+import {
+  getProfileDisplayOrganization,
+  getProfileDisplayTitle,
+  isFacultyProfile,
+  type DirectoryFilters,
+  type Profile,
+} from "@/types/domain";
 
 export function DirectoryPage() {
   const [filters, setFilters] = useState<DirectoryFilters>({ page: 1, pageSize: 12, role: "ALL", mentorship: "ALL" });
@@ -97,6 +103,10 @@ export function DirectoryPage() {
             <Input placeholder="React" value={filters.skill ?? ""} onChange={(event) => updateFilter("skill", event.target.value)} />
           </div>
           <div className="space-y-2">
+            <Label>Research</Label>
+            <Input placeholder="AI, EdTech" value={filters.research ?? ""} onChange={(event) => updateFilter("research", event.target.value)} />
+          </div>
+          <div className="space-y-2">
             <Label>Mentorship</Label>
             <Select value={filters.mentorship ?? "ALL"} onChange={(event) => updateFilter("mentorship", event.target.value)}>
               <option value="ALL">All members</option>
@@ -158,7 +168,7 @@ function ProfileCard({ profile }: { profile: Profile }) {
   const { push } = useToast();
   const isMe = me.id === profile.id;
   const isAlumniOrFaculty = profile.role === "ALUMNI" || profile.role === "FACULTY";
-  const canRequestMentorship = !isMe && isAlumniOrFaculty && me.role === "STUDENT";
+  const canRequestMentorship = !isMe && isAlumniOrFaculty && profile.mentorshipAvailable && me.role === "STUDENT";
 
   const [showMentorModal, setShowMentorModal] = useState(false);
   const [mentorCategory, setMentorCategory] = useState("Career Guidance");
@@ -193,9 +203,9 @@ function ProfileCard({ profile }: { profile: Profile }) {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h3 className="font-semibold">{profile.fullName}</h3>
-                  <p className="mt-1 text-sm text-muted-foreground">{profile.designation ?? profile.role.replace("_", " ")}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{getProfileDisplayTitle(profile)}</p>
                 </div>
-                {profile.isMentor ? (
+                {profile.mentorshipAvailable ? (
                   <Badge variant="success">
                     <Sparkles className="mr-1 h-3 w-3" />
                     Mentor
@@ -205,10 +215,10 @@ function ProfileCard({ profile }: { profile: Profile }) {
                 ) : null}
               </div>
               <div className="mt-4 space-y-2 text-sm text-muted-foreground">
-                {profile.company ? (
+                {getProfileDisplayOrganization(profile) ? (
                   <p className="flex items-center gap-2">
                     <Building2 className="h-4 w-4" />
-                    {profile.company}
+                    {getProfileDisplayOrganization(profile)}
                   </p>
                 ) : null}
                 {profile.city ? (
@@ -224,6 +234,9 @@ function ProfileCard({ profile }: { profile: Profile }) {
                     {skill}
                   </Badge>
                 ))}
+                {isFacultyProfile(profile) ? profile.faculty.researchInterests.slice(0, 2).map((item) => (
+                  <Badge key={item} variant="outline">{item}</Badge>
+                )) : null}
               </div>
             </div>
           </div>

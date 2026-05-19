@@ -20,7 +20,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { ModeToggle } from "@/components/mode-toggle";
 import { useAuthStore } from "@/lib/auth-store";
 import { listNotifications, markNotificationRead, markAllNotificationsRead, getCollegeName } from "@/lib/api";
 import { canAccessAdmin } from "@/lib/route-guards";
@@ -142,6 +142,7 @@ export function AppLayout() {
               {isDemoMode ? <Badge variant="outline">Demo mode</Badge> : null}
             </div>
             <div className="flex items-center gap-3">
+              <ModeToggle />
               {/* Notification Bell */}
               {profile ? (
                 <div className="relative" ref={bellRef}>

@@ -9,14 +9,15 @@ import { PageHeader } from "@/components/page-header";
 import { getAnalytics, getRecommendedMentors, listEvents, listFeedPosts, listJobs } from "@/lib/api";
 import { useAuthStore } from "@/lib/auth-store";
 import { formatDate } from "@/lib/utils";
+import { getProfileDisplayOrganization, getProfileDisplayTitle } from "@/types/domain";
 
 export function DashboardPage() {
   const profile = useAuthStore((state) => state.profile)!;
   const analytics = useQuery({ queryKey: ["analytics"], queryFn: getAnalytics });
   const mentors = useQuery({ queryKey: ["mentor-recommendations", profile.id], queryFn: () => getRecommendedMentors(profile) });
-  const jobs = useQuery({ queryKey: ["jobs", "dashboard", profile.id], queryFn: () => listJobs("", profile.id) });
-  const events = useQuery({ queryKey: ["events", "dashboard", profile.id], queryFn: () => listEvents(profile.id) });
-  const feed = useQuery({ queryKey: ["feed", "dashboard", profile.id], queryFn: () => listFeedPosts(profile.id) });
+  const jobs = useQuery({ queryKey: ["jobs", "dashboard"], queryFn: () => listJobs("") });
+  const events = useQuery({ queryKey: ["events", "dashboard"], queryFn: () => listEvents() });
+  const feed = useQuery({ queryKey: ["feed", "dashboard"], queryFn: () => listFeedPosts() });
 
   const cards = [
     { label: "Network members", value: analytics.data?.totalUsers ?? 0, icon: Users },
@@ -99,7 +100,7 @@ export function DashboardPage() {
                   <div>
                     <p className="font-medium">{match.profile.fullName}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      {match.profile.designation} at {match.profile.company}
+                      {[getProfileDisplayTitle(match.profile), getProfileDisplayOrganization(match.profile)].filter(Boolean).join(" at ")}
                     </p>
                   </div>
                   <Badge variant="success">{match.score}%</Badge>

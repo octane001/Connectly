@@ -1,4 +1,16 @@
-import type { DirectoryFilters, Profile } from "@/types/domain";
+import {
+  getProfileCareerGoals,
+  getProfileDisplayOrganization,
+  getProfileDisplayTitle,
+  getProfileGraduationYear,
+  getProfileIndustry,
+  getProfileInterests,
+  getProfileResearchInterests,
+  isAlumniProfile,
+  isFacultyProfile,
+  type DirectoryFilters,
+  type Profile,
+} from "@/types/domain";
 
 export const DEFAULT_PAGE_SIZE = 12;
 
@@ -13,6 +25,7 @@ export function normalizeDirectoryFilters(filters: DirectoryFilters) {
     role: filters.role && filters.role !== "ALL" ? filters.role : undefined,
     mentorship: filters.mentorship === "OPEN" ? "OPEN" : undefined,
     skill: filters.skill?.trim() || undefined,
+    research: filters.research?.trim() || undefined,
     page: Math.max(1, filters.page ?? 1),
     pageSize: Math.min(30, Math.max(6, filters.pageSize ?? DEFAULT_PAGE_SIZE)),
   };
@@ -30,11 +43,15 @@ export function profileMatchesFilters(profile: Profile, filters: DirectoryFilter
   const searchText = [
     profile.fullName,
     profile.department,
-    profile.company,
-    profile.designation,
-    profile.industry,
+    getProfileDisplayOrganization(profile),
+    getProfileDisplayTitle(profile),
+    getProfileIndustry(profile),
     profile.city,
     profile.skills.join(" "),
+    getProfileInterests(profile).join(" "),
+    getProfileCareerGoals(profile),
+    getProfileResearchInterests(profile).join(" "),
+    profile.mentorCategories.join(" "),
   ]
     .filter(Boolean)
     .join(" ")
@@ -42,27 +59,20 @@ export function profileMatchesFilters(profile: Profile, filters: DirectoryFilter
 
   if (normalized.search && !searchText.includes(normalized.search.toLowerCase())) return false;
   if (normalized.department && profile.department !== normalized.department) return false;
-  if (normalized.graduationYear && String(profile.graduationYear ?? "") !== normalized.graduationYear) return false;
-  if (normalized.company && !(profile.company ?? "").toLowerCase().includes(normalized.company.toLowerCase())) return false;
-  if (normalized.industry && profile.industry !== normalized.industry) return false;
+  if (normalized.graduationYear && String(getProfileGraduationYear(profile) ?? "") !== normalized.graduationYear) return false;
+  if (normalized.company && !(getProfileDisplayOrganization(profile) ?? "").toLowerCase().includes(normalized.company.toLowerCase())) return false;
+  if (normalized.industry && getProfileIndustry(profile) !== normalized.industry) return false;
   if (normalized.city && !(profile.city ?? "").toLowerCase().includes(normalized.city.toLowerCase())) return false;
   if (normalized.role && profile.role !== normalized.role) return false;
-  if (normalized.mentorship && !profile.isMentor) return false;
+  if (normalized.mentorship && !profile.mentorshipAvailable) return false;
   if (normalized.skill && !profile.skills.some((skill) => skill.toLowerCase().includes(normalized.skill!.toLowerCase()))) {
     return false;
   }
+  if (normalized.research) {
+    if (!isFacultyProfile(profile)) return false;
+    if (!profile.faculty.researchInterests.some((item) => item.toLowerCase().includes(normalized.research!.toLowerCase()))) return false;
+  }
+  if (normalized.company && !isAlumniProfile(profile) && profile.role !== "ADMIN" && profile.role !== "SUPER_ADMIN") return false;
 
   return profile.status === "ACTIVE";
-}
-
-export function buildDirectoryQueryDescription(filters: DirectoryFilters) {
-  const normalized = normalizeDirectoryFilters(filters);
-  const { from, to } = paginationRange(normalized.page, normalized.pageSize);
-  return {
-    table: "profiles",
-    select: "*, user_skills(skills(name))",
-    filters: normalized,
-    range: { from, to },
-    order: { column: "profile_completeness", ascending: false },
-  };
 }

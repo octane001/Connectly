@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, type UseFormReturn } from "react-hook-form";
 import { useMutation } from "@tanstack/react-query";
 import { CheckCircle2, Clock, Loader2, Network, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,16 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { DEPARTMENTS } from "@/lib/constants";
+import { DEPARTMENTS, INDUSTRIES } from "@/lib/constants";
 import { useAuthStore } from "@/lib/auth-store";
 import { completeOnboarding } from "@/lib/api";
 import { onboardingSchema, type OnboardingInput } from "@/features/onboarding/schemas";
-import type { Profile, UserRole } from "@/types/domain";
+import {
+  isAlumniProfile,
+  isFacultyProfile,
+  isStudentProfile,
+  type Profile,
+} from "@/types/domain";
 
 export function OnboardingPage() {
   const { profile, updateProfile, isLoading } = useAuthStore();
@@ -24,31 +29,12 @@ export function OnboardingPage() {
 
   const form = useForm<OnboardingInput>({
     resolver: zodResolver(onboardingSchema),
-    defaultValues: {
-      fullName: profile?.fullName ?? "",
-      role: profile?.role ?? "STUDENT",
-      department: profile?.department ?? "Computer Science",
-      studentId: profile?.studentId ?? "",
-      graduationYear: profile?.graduationYear ?? new Date().getFullYear() + 1,
-      skills: profile?.skills.join(", ") ?? "",
-      interests: profile?.interests.join(", ") ?? "",
-      careerGoals: profile?.careerGoals ?? "",
-    },
+    defaultValues: onboardingDefaults(profile) as any,
   });
+  const role = form.watch("role");
 
   useEffect(() => {
-    if (profile) {
-      form.reset({
-        fullName: profile.fullName,
-        role: profile.role,
-        department: profile.department,
-        studentId: profile.studentId ?? "",
-        graduationYear: profile.graduationYear ?? new Date().getFullYear() + 1,
-        skills: profile.skills.join(", "),
-        interests: profile.interests.join(", "),
-        careerGoals: profile.careerGoals ?? "",
-      });
-    }
+    if (profile) form.reset(onboardingDefaults(profile) as any);
   }, [form, profile]);
 
   const mutation = useMutation({
@@ -68,21 +54,7 @@ export function OnboardingPage() {
   if (profile.status === "ACTIVE") return <Navigate to="/app" replace />;
 
   const submit = (input: OnboardingInput) => {
-    const updated: Profile = {
-      ...profile,
-      fullName: input.fullName,
-      role: input.role as UserRole,
-      department: input.department,
-      studentId: input.studentId || profile.studentId,
-      graduationYear: input.graduationYear,
-      skills: split(input.skills),
-      interests: split(input.interests),
-      careerGoals: input.careerGoals,
-      status: "ACTIVE",
-      profileCompleteness: Math.max(profile.profileCompleteness, 84),
-      updatedAt: new Date().toISOString(),
-    };
-    mutation.mutate(updated);
+    mutation.mutate(buildOnboardingProfile(profile, input));
   };
 
   return (
@@ -95,16 +67,15 @@ export function OnboardingPage() {
             </span>
             Connectly onboarding
           </div>
-          <h1 className="mt-8 max-w-xl text-4xl font-semibold tracking-normal">Verify identity and complete the essentials</h1>
+          <h1 className="mt-8 max-w-xl text-4xl font-semibold tracking-normal">Verify identity with the right profile type</h1>
           <p className="mt-4 max-w-xl text-muted-foreground">
-            Imported alumni are merged by Google email. Unknown users provide student ID, department, and graduation year for
-            admin verification before full access.
+            Students, alumni, and faculty now complete separate profile sections so directory search, mentorship, and admin review stay accurate.
           </p>
           <div className="mt-8 space-y-4">
             {[
-              ["Imported alumni merge", "Exact email matching activates pre-seeded invited alumni records."],
-              ["Fallback verification", "Unmatched users stay pending until admin approval."],
-              ["Progressive profiles", "Only essentials are required now; richer profile sections can be completed later."],
+              ["Role-specific records", "Your role controls the fields saved to the database."],
+              ["Cleaner verification", "Admins review identity details without unrelated profile noise."],
+              ["Better matching", "Mentorship and search use student goals, alumni industries, and faculty research areas separately."],
             ].map(([title, text]) => (
               <div key={title} className="flex gap-3">
                 <CheckCircle2 className="mt-0.5 h-5 w-5 text-emerald-600" />
@@ -120,7 +91,7 @@ export function OnboardingPage() {
         <Card>
           <CardHeader>
             <CardTitle>Essential profile</CardTitle>
-            <CardDescription>Keep this accurate for directory search and mentor matching.</CardDescription>
+            <CardDescription>Only fields that belong to your selected role are required.</CardDescription>
           </CardHeader>
           <CardContent>
             {profile.status === "PENDING" ? (
@@ -159,25 +130,17 @@ export function OnboardingPage() {
                   ))}
                 </Select>
               </Field>
-              <Field label="Graduation year" error={form.formState.errors.graduationYear?.message}>
-                <Input type="number" {...form.register("graduationYear")} />
+              <Field label="City">
+                <Input {...form.register("city" as any)} />
               </Field>
-              <Field label="Student ID / Alumni ID">
-                <Input {...form.register("studentId")} />
-              </Field>
-              <Field label="Skills" error={form.formState.errors.skills?.message}>
+              <Field label="Skills" error={(form.formState.errors as any).skills?.message}>
                 <Input placeholder="React, Python, SQL" {...form.register("skills")} />
               </Field>
-              <Field label="Interests" error={form.formState.errors.interests?.message}>
-                <Input placeholder="Machine Learning, Product Engineering" {...form.register("interests")} />
-              </Field>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Career goals</Label>
-                <Textarea {...form.register("careerGoals")} />
-                {form.formState.errors.careerGoals ? (
-                  <p className="text-sm text-destructive">{form.formState.errors.careerGoals.message}</p>
-                ) : null}
-              </div>
+
+              {role === "STUDENT" ? <StudentFields form={form} /> : null}
+              {role === "ALUMNI" ? <AlumniFields form={form} /> : null}
+              {role === "FACULTY" ? <FacultyFields form={form} /> : null}
+
               <Button className="md:col-span-2" disabled={mutation.isPending}>
                 {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                 Complete onboarding
@@ -190,6 +153,98 @@ export function OnboardingPage() {
   );
 }
 
+function StudentFields({ form }: { form: UseFormReturn<OnboardingInput> }) {
+  return (
+    <>
+      <Field label="Student ID" error={(form.formState.errors as any).studentId?.message}>
+        <Input {...form.register("studentId" as any)} />
+      </Field>
+      <Field label="Current year" error={(form.formState.errors as any).currentYear?.message}>
+        <Input type="number" min={1} max={8} {...form.register("currentYear" as any)} />
+      </Field>
+      <Field label="Degree" error={(form.formState.errors as any).degree?.message}>
+        <Input placeholder="B.Tech" {...form.register("degree" as any)} />
+      </Field>
+      <Field label="Specialization" error={(form.formState.errors as any).specialization?.message}>
+        <Input placeholder="Computer Science" {...form.register("specialization" as any)} />
+      </Field>
+      <Field label="CGPA">
+        <Input type="number" step="0.01" min={0} max={10} {...form.register("cgpa" as any)} />
+      </Field>
+      <Field label="Interests" error={(form.formState.errors as any).interests?.message}>
+        <Input placeholder="Machine Learning, Product Engineering" {...form.register("interests" as any)} />
+      </Field>
+      <div className="space-y-2 md:col-span-2">
+        <Label>Career goals</Label>
+        <Textarea {...form.register("careerGoals" as any)} />
+        {(form.formState.errors as any).careerGoals ? (
+          <p className="text-sm text-destructive">{(form.formState.errors as any).careerGoals.message}</p>
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+function AlumniFields({ form }: { form: UseFormReturn<OnboardingInput> }) {
+  return (
+    <>
+      <Field label="Graduation year" error={(form.formState.errors as any).graduationYear?.message}>
+        <Input type="number" {...form.register("graduationYear" as any)} />
+      </Field>
+      <Field label="Company" error={(form.formState.errors as any).company?.message}>
+        <Input {...form.register("company" as any)} />
+      </Field>
+      <Field label="Designation" error={(form.formState.errors as any).designation?.message}>
+        <Input {...form.register("designation" as any)} />
+      </Field>
+      <Field label="Industry" error={(form.formState.errors as any).industry?.message}>
+        <Select {...form.register("industry" as any)}>
+          {INDUSTRIES.map((industry) => <option key={industry}>{industry}</option>)}
+        </Select>
+      </Field>
+      <Field label="Experience years">
+        <Input type="number" min={0} {...form.register("experienceYears" as any)} />
+      </Field>
+      <Field label="Mentorship categories">
+        <Input placeholder="Career Guidance, Resume Review" {...form.register("mentorCategories" as any)} />
+      </Field>
+      <label className="flex items-center gap-2 rounded-md border p-3 text-sm md:col-span-2">
+        <input type="checkbox" {...form.register("mentorshipAvailable" as any)} />
+        Available for student mentorship
+      </label>
+    </>
+  );
+}
+
+function FacultyFields({ form }: { form: UseFormReturn<OnboardingInput> }) {
+  return (
+    <>
+      <Field label="Faculty ID" error={(form.formState.errors as any).facultyId?.message}>
+        <Input {...form.register("facultyId" as any)} />
+      </Field>
+      <Field label="Academic title" error={(form.formState.errors as any).academicTitle?.message}>
+        <Input placeholder="Professor" {...form.register("academicTitle" as any)} />
+      </Field>
+      <Field label="Designation" error={(form.formState.errors as any).designation?.message}>
+        <Input placeholder="Placement Coordinator" {...form.register("designation" as any)} />
+      </Field>
+      <Field label="Office location">
+        <Input {...form.register("officeLocation" as any)} />
+      </Field>
+      <Field label="Mentorship capacity">
+        <Input type="number" min={0} {...form.register("mentorshipCapacity" as any)} />
+      </Field>
+      <Field label="Research interests" error={(form.formState.errors as any).researchInterests?.message}>
+        <Input placeholder="Machine Learning, Education Technology" {...form.register("researchInterests" as any)} />
+      </Field>
+      <div className="space-y-2 md:col-span-2">
+        <Label>Publications</Label>
+        <Textarea placeholder="Comma-separated publication titles" {...form.register("publications" as any)} />
+      </div>
+    </>
+  );
+}
+
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-2">
@@ -198,6 +253,133 @@ function Field({ label, error, children }: { label: string; error?: string; chil
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   );
+}
+
+function onboardingDefaults(profile: Profile | null): Partial<OnboardingInput> {
+  const base = {
+    fullName: profile?.fullName ?? "",
+    role: profile?.role === "ALUMNI" || profile?.role === "FACULTY" ? profile.role : "STUDENT",
+    department: profile?.department ?? "Computer Science",
+    bio: profile?.bio ?? "",
+    city: profile?.city ?? "",
+    skills: profile?.skills.join(", ") ?? "",
+    phoneVisible: profile?.phoneVisible ?? false,
+  };
+
+  if (profile && isAlumniProfile(profile)) {
+    return {
+      ...base,
+      role: "ALUMNI",
+      graduationYear: profile.alumni.graduationYear ?? new Date().getFullYear() - 1,
+      company: profile.alumni.company ?? "",
+      designation: profile.alumni.designation ?? "",
+      industry: profile.alumni.industry ?? "Software",
+      experienceYears: profile.alumni.experienceYears ?? 0,
+      mentorshipAvailable: profile.alumni.mentorshipAvailable,
+      mentorCategories: profile.mentorCategories.join(", "),
+    };
+  }
+
+  if (profile && isFacultyProfile(profile)) {
+    return {
+      ...base,
+      role: "FACULTY",
+      facultyId: profile.faculty.facultyId ?? "",
+      academicTitle: profile.faculty.academicTitle ?? "",
+      designation: profile.faculty.designation ?? "",
+      researchInterests: profile.faculty.researchInterests.join(", "),
+      publications: profile.faculty.publications.join(", "),
+      officeLocation: profile.faculty.officeLocation ?? "",
+      mentorshipCapacity: profile.faculty.mentorshipCapacity,
+    };
+  }
+
+  return {
+    ...base,
+    role: "STUDENT",
+    studentId: profile && isStudentProfile(profile) ? profile.student.studentId ?? "" : "",
+    currentYear: profile && isStudentProfile(profile) ? profile.student.currentYear ?? 1 : 1,
+    degree: profile && isStudentProfile(profile) ? profile.student.degree ?? "B.Tech" : "B.Tech",
+    specialization: profile && isStudentProfile(profile) ? profile.student.specialization ?? profile.department : profile?.department ?? "Computer Science",
+    cgpa: profile && isStudentProfile(profile) ? profile.student.cgpa ?? undefined : undefined,
+    interests: profile && isStudentProfile(profile) ? profile.student.interests.join(", ") : "",
+    careerGoals: profile && isStudentProfile(profile) ? profile.student.careerGoals ?? "" : "",
+  };
+}
+
+function buildOnboardingProfile(profile: Profile, input: OnboardingInput): Profile {
+  const base = {
+    ...profile,
+    fullName: input.fullName,
+    role: input.role,
+    department: input.department,
+    bio: input.bio ?? profile.bio,
+    city: input.city ?? profile.city,
+    skills: split(input.skills),
+    phoneVisible: input.phoneVisible,
+    status: "ACTIVE" as const,
+    profileCompleteness: Math.max(profile.profileCompleteness, 84),
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (input.role === "ALUMNI") {
+    return {
+      ...base,
+      role: "ALUMNI",
+      displayTitle: input.designation,
+      displayOrganization: input.company,
+      displayIndustry: input.industry,
+      mentorshipAvailable: input.mentorshipAvailable,
+      mentorshipCapacity: input.mentorshipAvailable ? Math.max(profile.mentorshipCapacity, 4) : 0,
+      mentorCategories: split(input.mentorCategories ?? ""),
+      alumni: {
+        graduationYear: input.graduationYear,
+        company: input.company,
+        designation: input.designation,
+        industry: input.industry,
+        experienceYears: input.experienceYears,
+        mentorshipAvailable: input.mentorshipAvailable,
+      },
+    };
+  }
+
+  if (input.role === "FACULTY") {
+    return {
+      ...base,
+      role: "FACULTY",
+      displayTitle: input.academicTitle,
+      mentorshipAvailable: input.mentorshipCapacity > 0,
+      mentorshipCapacity: input.mentorshipCapacity,
+      mentorCategories: input.mentorshipCapacity > 0 ? ["Research Guidance", "Project Advice"] : [],
+      faculty: {
+        facultyId: input.facultyId,
+        academicTitle: input.academicTitle,
+        designation: input.designation,
+        researchInterests: split(input.researchInterests),
+        publications: split(input.publications ?? ""),
+        officeLocation: input.officeLocation ?? null,
+        mentorshipCapacity: input.mentorshipCapacity,
+      },
+    };
+  }
+
+  return {
+    ...base,
+    role: "STUDENT",
+    displayTitle: "Student",
+    mentorshipAvailable: false,
+    mentorshipCapacity: 0,
+    mentorCategories: [],
+    student: {
+      studentId: input.studentId,
+      currentYear: input.currentYear,
+      degree: input.degree,
+      specialization: input.specialization,
+      cgpa: input.cgpa ?? null,
+      interests: split(input.interests),
+      careerGoals: input.careerGoals,
+    },
+  };
 }
 
 function split(value: string) {

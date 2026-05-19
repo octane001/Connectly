@@ -1,4 +1,14 @@
-import type { MatchResult, Profile } from "@/types/domain";
+import {
+  getProfileCareerGoals,
+  getProfileIndustry,
+  getProfileInterests,
+  getProfileResearchInterests,
+  isAlumniProfile,
+  isFacultyProfile,
+  isStudentProfile,
+  type MatchResult,
+  type Profile,
+} from "@/types/domain";
 
 function overlap(left: string[], right: string[]) {
   const rightSet = new Set(right.map((item) => item.toLowerCase()));
@@ -11,10 +21,13 @@ function containsAny(source: string | null | undefined, candidates: string[]) {
 }
 
 export function calculateMentorMatches(student: Profile, profiles: Profile[], limit = 6): MatchResult[] {
+  if (!isStudentProfile(student)) return [];
+
   return profiles
     .filter((profile) => profile.id !== student.id)
     .filter((profile) => profile.status === "ACTIVE")
     .filter((profile) => profile.role === "ALUMNI" || profile.role === "FACULTY")
+    .filter((profile) => profile.mentorshipAvailable)
     .map((profile) => scoreMentor(student, profile))
     .filter((match) => match.score >= 25) // Only show if there's at least some relevance
     .sort((a, b) => b.score - a.score || b.profile.profileCompleteness - a.profile.profileCompleteness)
@@ -25,7 +38,7 @@ export function scoreMentor(student: Profile, mentor: Profile): MatchResult {
   const reasons: string[] = [];
   let score = 20;
 
-  if (mentor.isMentor && mentor.mentorshipCapacity > 0) {
+  if (mentor.mentorshipAvailable && mentor.mentorshipCapacity > 0) {
     score += 12;
     reasons.push("Open to mentoring");
   }
@@ -47,17 +60,26 @@ export function scoreMentor(student: Profile, mentor: Profile): MatchResult {
     reasons.push("Similar Tech Stack");
   }
 
+  const studentInterests = getProfileInterests(student);
+  const studentGoals = getProfileCareerGoals(student);
+  const mentorFocusAreas = [
+    ...mentor.mentorCategories,
+    ...(isFacultyProfile(mentor) ? getProfileResearchInterests(mentor) : []),
+    ...(isAlumniProfile(mentor) ? ([mentor.alumni.company, mentor.alumni.industry, mentor.alumni.designation].filter(Boolean) as string[]) : []),
+  ];
   const interestMatches = [
-    ...overlap(student.interests, mentor.interests),
-    ...containsAny(student.careerGoals, mentor.interests),
-    ...containsAny(student.careerGoals, mentor.skills),
+    ...overlap(studentInterests, mentorFocusAreas),
+    ...containsAny(studentGoals, mentorFocusAreas),
+    ...containsAny(studentGoals, mentor.skills),
   ];
   if (interestMatches.length > 0) {
     score += Math.min(15, interestMatches.length * 5);
     reasons.push("Aligned Career Interests");
   }
 
-  if (student.industry && mentor.industry && student.industry === mentor.industry) {
+  const preferredIndustry = getProfileIndustry(student);
+  const mentorIndustry = getProfileIndustry(mentor);
+  if (preferredIndustry && mentorIndustry && preferredIndustry === mentorIndustry) {
     score += 10;
     reasons.push("Preferred Industry");
   }

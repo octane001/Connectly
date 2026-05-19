@@ -25,3 +25,5 @@ export function formatDate(value: string | Date) {
 export function currencyFreeLabel() {
   return "Free-tier ready";
 }
+
+export const delay = (ms = 150) => new Promise((resolve) => window.setTimeout(resolve, ms));

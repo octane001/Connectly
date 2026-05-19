@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDirectoryQueryDescription, normalizeDirectoryFilters, paginationRange, profileMatchesFilters } from "@/features/directory/directory-query";
+import { normalizeDirectoryFilters, paginationRange, profileMatchesFilters } from "@/features/directory/directory-query";
 import { demoProfiles } from "@/lib/demo-data";
 
 describe("directory query helpers", () => {
@@ -21,14 +21,6 @@ describe("directory query helpers", () => {
 
   it("computes Supabase range boundaries", () => {
     expect(paginationRange(2, 12)).toEqual({ from: 12, to: 23 });
-  });
-
-  it("describes the intended server-side profile query", () => {
-    const query = buildDirectoryQueryDescription({ department: "Computer Science", page: 1, pageSize: 12 });
-
-    expect(query.table).toBe("profiles");
-    expect(query.filters.department).toBe("Computer Science");
-    expect(query.range).toEqual({ from: 0, to: 11 });
   });
 
   it("filters demo profiles with the same semantics as server filters", () => {

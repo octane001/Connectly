@@ -6,6 +6,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import { ProtectedRoute } from "@/routes/protected-route";
 import { PublicLayout } from "@/routes/public-layout";
 import { AppLayout } from "@/routes/app-layout";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const AdminPage = lazy(() => import("@/features/admin/admin-page").then((module) => ({ default: module.AdminPage })));
 const AuthPage = lazy(() => import("@/features/auth/auth-page").then((module) => ({ default: module.AuthPage })));
@@ -29,37 +30,39 @@ export function App() {
   }, [initialize]);
 
   return (
-    <ErrorBoundary>
-      <Suspense fallback={<PageLoader />}>
-        <Routes>
-          <Route element={<PublicLayout />}>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/auth" element={<AuthPage />} />
-          </Route>
-          <Route path="/onboarding" element={<OnboardingPage />} />
-          <Route element={<ProtectedRoute />}>
-            <Route path="/app" element={<AppLayout />}>
-              <Route index element={<DashboardPage />} />
-              <Route path="directory" element={<DirectoryPage />} />
-              <Route path="mentorship" element={<MentorshipPage />} />
-              <Route path="jobs" element={<JobsPage />} />
-              <Route path="events" element={<EventsPage />} />
-              <Route path="feed" element={<FeedPage />} />
-              <Route path="messages" element={<MessagesPage />} />
-              <Route path="notifications" element={<NotificationsPage />} />
-              <Route path="profile" element={<ProfilePage />} />
+    <ThemeProvider defaultTheme="system" storageKey="connectly-theme">
+      <ErrorBoundary>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route element={<PublicLayout />}>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/auth" element={<AuthPage />} />
             </Route>
-          </Route>
-          <Route element={<ProtectedRoute adminOnly />}>
-            <Route path="/app/admin" element={<AppLayout />}>
-              <Route index element={<AdminPage />} />
+            <Route path="/onboarding" element={<OnboardingPage />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/app" element={<AppLayout />}>
+                <Route index element={<DashboardPage />} />
+                <Route path="directory" element={<DirectoryPage />} />
+                <Route path="mentorship" element={<MentorshipPage />} />
+                <Route path="jobs" element={<JobsPage />} />
+                <Route path="events" element={<EventsPage />} />
+                <Route path="feed" element={<FeedPage />} />
+                <Route path="messages" element={<MessagesPage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
+                <Route path="profile" element={<ProfilePage />} />
+              </Route>
             </Route>
-          </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
-      <Toaster />
-    </ErrorBoundary>
+            <Route element={<ProtectedRoute adminOnly />}>
+              <Route path="/app/admin" element={<AppLayout />}>
+                <Route index element={<AdminPage />} />
+              </Route>
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+        <Toaster />
+      </ErrorBoundary>
+    </ThemeProvider>
   );
 }
 

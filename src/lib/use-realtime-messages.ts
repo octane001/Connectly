@@ -47,7 +47,7 @@ export function useRealtimeMessages(activeThreadId: string | null | undefined) {
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (supabase) supabase.removeChannel(channel);
     };
   }, [activeThreadId]);
 }

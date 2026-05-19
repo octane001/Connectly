@@ -19,7 +19,7 @@ describe("mentor matching", () => {
     const matches = calculateMentorMatches(student, demoProfiles);
 
     expect(matches.length).toBeGreaterThan(0);
-    expect(matches.every((match) => match.profile.isMentor)).toBe(true);
+    expect(matches.every((match) => match.profile.mentorshipAvailable)).toBe(true);
     expect(matches.every((match) => ["ALUMNI", "FACULTY"].includes(match.profile.role))).toBe(true);
   });
 });

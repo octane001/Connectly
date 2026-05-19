@@ -8,7 +8,10 @@ describe("onboarding schema", () => {
       role: "STUDENT",
       department: "Computer Science",
       studentId: "CS2027-041",
-      graduationYear: 2027,
+      currentYear: 4,
+      degree: "B.Tech",
+      specialization: "Computer Science",
+      cgpa: 8.6,
       skills: "React, Python",
       interests: "Machine Learning, Product Engineering",
       careerGoals: "I want to become a product-minded software engineer.",
@@ -21,11 +24,7 @@ describe("onboarding schema", () => {
     const base = {
       fullName: "Root User",
       department: "Computer Science",
-      studentId: "ROOT",
-      graduationYear: 2027,
       skills: "Operations",
-      interests: "Administration",
-      careerGoals: "I want to manage the platform with full system privileges.",
     };
 
     const adminResult = onboardingSchema.safeParse({ ...base, role: "ADMIN" });

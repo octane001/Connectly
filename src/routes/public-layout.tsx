@@ -1,6 +1,7 @@
 import { Link, Outlet } from "react-router-dom";
 import { Network } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "@/components/mode-toggle";
 
 export function PublicLayout() {
   return (
@@ -18,9 +19,12 @@ export function PublicLayout() {
             <a href="/#jobs">Jobs</a>
             <a href="/#engagement">Engagement</a>
           </nav>
-          <Button asChild>
-            <Link to="/auth">Sign in</Link>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ModeToggle />
+            <Button asChild>
+              <Link to="/auth">Sign in</Link>
+            </Button>
+          </div>
         </div>
       </header>
       <Outlet />

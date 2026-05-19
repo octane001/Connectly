@@ -11,7 +11,7 @@ export interface Skill {
   category: string;
 }
 
-export interface Profile {
+export interface BaseProfile {
   id: string;
   authUserId?: string | null;
   fullName: string;
@@ -20,25 +20,18 @@ export interface Profile {
   role: UserRole;
   status: AccountStatus;
   department: string;
-  graduationYear?: number | null;
-  studentId?: string | null;
   bio?: string | null;
-  company?: string | null;
-  designation?: string | null;
-  industry?: string | null;
   city?: string | null;
   country?: string | null;
   skills: string[];
-  interests: string[];
-  careerGoals?: string | null;
   technologyStack: string[];
   achievements: string[];
   projects: string[];
   socialLinks?: Record<string, string>;
-  academicTitle?: string | null;
-  publications?: string[];
-  researchInterests?: string[];
-  isMentor: boolean;
+  displayTitle?: string | null;
+  displayOrganization?: string | null;
+  displayIndustry?: string | null;
+  mentorshipAvailable: boolean;
   mentorCategories: string[];
   mentorshipCapacity: number;
   profileCompleteness: number;
@@ -46,6 +39,109 @@ export interface Profile {
   phone?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface StudentProfile extends BaseProfile {
+  role: "STUDENT";
+  student: {
+    studentId?: string | null;
+    currentYear?: number | null;
+    degree?: string | null;
+    specialization?: string | null;
+    cgpa?: number | null;
+    interests: string[];
+    careerGoals?: string | null;
+  };
+}
+
+export interface AlumniProfile extends BaseProfile {
+  role: "ALUMNI";
+  alumni: {
+    graduationYear?: number | null;
+    company?: string | null;
+    designation?: string | null;
+    industry?: string | null;
+    experienceYears?: number | null;
+    mentorshipAvailable: boolean;
+  };
+}
+
+export interface FacultyProfile extends BaseProfile {
+  role: "FACULTY";
+  faculty: {
+    facultyId?: string | null;
+    academicTitle?: string | null;
+    designation?: string | null;
+    researchInterests: string[];
+    publications: string[];
+    officeLocation?: string | null;
+    mentorshipCapacity: number;
+  };
+}
+
+export interface AdminProfile extends BaseProfile {
+  role: "ADMIN" | "SUPER_ADMIN";
+  admin: {
+    adminLevel: string;
+    permissions: string[];
+    internalRole?: string | null;
+    institutionName?: string | null;
+  };
+}
+
+export type Profile = StudentProfile | AlumniProfile | FacultyProfile | AdminProfile;
+
+export function isStudentProfile(profile: Profile | null | undefined): profile is StudentProfile {
+  return profile?.role === "STUDENT";
+}
+
+export function isAlumniProfile(profile: Profile | null | undefined): profile is AlumniProfile {
+  return profile?.role === "ALUMNI";
+}
+
+export function isFacultyProfile(profile: Profile | null | undefined): profile is FacultyProfile {
+  return profile?.role === "FACULTY";
+}
+
+export function isAdminProfile(profile: Profile | null | undefined): profile is AdminProfile {
+  return profile?.role === "ADMIN" || profile?.role === "SUPER_ADMIN";
+}
+
+export function getProfileDisplayTitle(profile: Profile) {
+  if (isAlumniProfile(profile)) return profile.alumni.designation ?? profile.displayTitle ?? "Alumni";
+  if (isFacultyProfile(profile)) return profile.faculty.academicTitle ?? profile.faculty.designation ?? profile.displayTitle ?? "Faculty";
+  if (isAdminProfile(profile)) return profile.admin.internalRole ?? profile.displayTitle ?? "Administrator";
+  return profile.displayTitle ?? "Student";
+}
+
+export function getProfileDisplayOrganization(profile: Profile) {
+  if (isAlumniProfile(profile)) return profile.alumni.company ?? profile.displayOrganization ?? null;
+  if (isAdminProfile(profile)) return profile.admin.institutionName ?? profile.displayOrganization ?? null;
+  return profile.displayOrganization ?? null;
+}
+
+export function getProfileIndustry(profile: Profile) {
+  return isAlumniProfile(profile) ? profile.alumni.industry ?? profile.displayIndustry ?? null : profile.displayIndustry ?? null;
+}
+
+export function getProfileGraduationYear(profile: Profile) {
+  return isAlumniProfile(profile) ? profile.alumni.graduationYear ?? null : null;
+}
+
+export function getProfileStudentId(profile: Profile) {
+  return isStudentProfile(profile) ? profile.student.studentId ?? null : null;
+}
+
+export function getProfileInterests(profile: Profile) {
+  return isStudentProfile(profile) ? profile.student.interests : [];
+}
+
+export function getProfileCareerGoals(profile: Profile) {
+  return isStudentProfile(profile) ? profile.student.careerGoals ?? null : null;
+}
+
+export function getProfileResearchInterests(profile: Profile) {
+  return isFacultyProfile(profile) ? profile.faculty.researchInterests : [];
 }
 
 export interface DirectoryFilters {
@@ -58,6 +154,7 @@ export interface DirectoryFilters {
   role?: UserRole | "ALL";
   mentorship?: "ALL" | "OPEN";
   skill?: string;
+  research?: string;
   page?: number;
   pageSize?: number;
 }
@@ -77,6 +174,8 @@ export interface MentorshipRequest {
   message: string;
   status: RequestStatus;
   createdAt: string;
+  requesterName?: string;
+  mentorName?: string;
 }
 
 export interface Job {
@@ -156,6 +255,16 @@ export interface AnalyticsSnapshot {
   openJobs: number;
   eventRegistrations: number;
   monthlyEngagement: Array<{ month: string; users: number; mentorship: number; jobs: number }>;
+}
+
+export interface AlumniImportRow {
+  full_name: string;
+  email: string;
+  department: string;
+  graduation_year: number;
+  company?: string;
+  designation?: string;
+  city?: string;
 }
 
 export interface AlumniImport {
