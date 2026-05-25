@@ -56,13 +56,16 @@ create table if not exists public.experience (
 
 alter table public.experience enable row level security;
 
+drop policy if exists "Users can read all experience" on public.experience;
 create policy "Users can read all experience" on public.experience
   for select using (true);
 
+drop policy if exists "Users manage own experience" on public.experience;
 create policy "Users manage own experience" on public.experience
   for all using (profile_id = public.current_profile_id())
   with check (profile_id = public.current_profile_id());
 
+drop trigger if exists experience_updated_at on public.experience;
 create trigger experience_updated_at before update on public.experience
 for each row execute function public.set_updated_at();
 
@@ -80,6 +83,7 @@ create table if not exists public.audit_logs (
 
 alter table public.audit_logs enable row level security;
 
+drop policy if exists "Admins can read audit logs" on public.audit_logs;
 create policy "Admins can read audit logs" on public.audit_logs
   for select using (public.is_admin());
 
