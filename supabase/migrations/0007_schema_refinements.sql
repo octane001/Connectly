@@ -24,7 +24,7 @@ begin
 end;
 $$;
 
-drop trigger if exists feed_comments_insert_count on public.comments;
+drop trigger if exists feed_comments_sync_count on public.comments;
 create trigger feed_comments_sync_count
 after insert or delete on public.comments
 for each row execute function public.sync_feed_comment_count();
