@@ -364,7 +364,7 @@ function buildProfile(profile: Profile, input: ProfileInput): Profile {
     };
   }
 
-  if ((input.role === "ADMIN" || input.role === "SUPER_ADMIN") && isAdminProfile(profile)) {
+  if (input.role === "ADMIN" && isAdminProfile(profile)) {
     return {
       ...base,
       role: input.role,

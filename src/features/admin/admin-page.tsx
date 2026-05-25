@@ -1,13 +1,13 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { BadgeCheck, Ban, Briefcase, Download, FileSpreadsheet, GraduationCap, Loader2, Search, Shield, Sparkles, Upload, UserCog, Users } from "lucide-react";
+import { BadgeCheck, Ban, Briefcase, ChevronLeft, ChevronRight, Download, FileSpreadsheet, GraduationCap, Loader2, Search, Shield, Sparkles, Upload, UserCog, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/ui/use-toast";
 import { 
@@ -18,7 +18,7 @@ import {
   rejectUser, 
   moderateJob, 
   bulkImportAlumni, 
-  searchProfiles,
+  listAllUsers,
   updateUserRole,
   transitionGraduatedStudents,
   type AlumniImportRow 
@@ -221,77 +221,170 @@ export function AdminPage() {
 
 /* ─── User Management Component ───────────────────────────────────── */
 
+const PAGE_SIZE = 12;
+
 function UserManagement() {
   const [search, setSearch] = useState("");
-  const users = useQuery({ 
-    queryKey: ["user-search", search], 
-    queryFn: () => searchProfiles(search),
-    enabled: search.length > 2
-  });
+  const [roleFilter, setRoleFilter] = useState<UserRole | "ALL">("ALL");
+  const [page, setPage] = useState(1);
+  const [pendingRoleId, setPendingRoleId] = useState<string | null>(null);
   const { push } = useToast();
+
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["user-list", search, roleFilter, page],
+    queryFn: () => listAllUsers({ search, role: roleFilter, page, pageSize: PAGE_SIZE }),
+    placeholderData: (prev) => prev,
+  });
+
+  const users = data?.data ?? [];
+  const totalCount = data?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   const changeRole = useMutation({
     mutationFn: ({ id, role }: { id: string; role: UserRole }) => updateUserRole(id, role),
-    onSuccess: () => push({ kind: "success", title: "Role updated", description: "User role has been changed successfully." }),
-    onError: (err: any) => push({ kind: "error", title: "Update failed", description: err.message }),
+    onMutate: ({ id }) => setPendingRoleId(id),
+    onSuccess: (_data, vars) => {
+      push({ kind: "success", title: "Role updated", description: `Role changed to ${vars.role.replace("_", " ")} successfully.` });
+      setPendingRoleId(null);
+    },
+    onError: (err: any) => {
+      push({ kind: "error", title: "Update failed", description: err.message });
+      setPendingRoleId(null);
+    },
   });
+
+  const handleSearch = (val: string) => { setSearch(val); setPage(1); };
+  const handleRoleFilter = (val: string) => { setRoleFilter(val as UserRole | "ALL"); setPage(1); };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><UserCog className="h-5 w-5" /> User Management</CardTitle>
-        <CardDescription>Search for users to update their roles or manage their accounts.</CardDescription>
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <UserCog className="h-5 w-5" /> User Role Management
+            </CardTitle>
+            <CardDescription className="mt-1">
+              All platform users are listed. Use the role dropdown on any user card to change their role instantly.
+            </CardDescription>
+          </div>
+          <span className="shrink-0 rounded-full border bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+            {totalCount} user{totalCount !== 1 ? "s" : ""}
+          </span>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input 
-            placeholder="Search by name or email..." 
-            className="pl-10"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        {/* Filters */}
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              id="user-management-search"
+              className="focus-ring h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 text-sm shadow-sm placeholder:text-muted-foreground"
+              placeholder="Search by name or email…"
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+            />
+          </div>
+          <Select
+            value={roleFilter}
+            onChange={(e) => handleRoleFilter(e.target.value)}
+            className="w-full sm:w-44"
+          >
+            <option value="ALL">All Roles</option>
+            <option value="STUDENT">Student</option>
+            <option value="ALUMNI">Alumni</option>
+            <option value="FACULTY">Faculty</option>
+            <option value="ADMIN">Admin</option>
+          </Select>
         </div>
 
-        {users.isLoading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
-        
-        {users.data && users.data.length === 0 && (
-          <p className="py-8 text-center text-sm text-muted-foreground">No users found matching "{search}"</p>
+        {/* Loading */}
+        {isLoading && (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" />
+          </div>
         )}
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {(users.data ?? []).map((user) => (
-            <div key={user.id} className="flex flex-col justify-between gap-3 rounded-lg border p-4">
-              <div className="flex items-center gap-3">
-                <Avatar name={user.fullName} src={user.avatarUrl ?? undefined} className="h-10 w-10" />
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{user.fullName}</p>
-                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+        {/* Empty state */}
+        {!isLoading && users.length === 0 && (
+          <div className="rounded-lg border border-dashed py-12 text-center">
+            <Users className="mx-auto h-8 w-8 text-muted-foreground/50" />
+            <p className="mt-3 text-sm font-medium text-muted-foreground">No users found</p>
+            {(search || roleFilter !== "ALL") && (
+              <p className="mt-1 text-xs text-muted-foreground">Try adjusting your search or role filter.</p>
+            )}
+          </div>
+        )}
+
+        {/* User cards grid */}
+        {users.length > 0 && (
+          <div className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 transition-opacity ${isFetching ? "opacity-60" : "opacity-100"}`}>
+            {users.map((user) => (
+              <div
+                key={user.id}
+                className="flex flex-col gap-3 rounded-xl border bg-card p-4 shadow-sm transition-shadow hover:shadow-md"
+              >
+                {/* User info */}
+                <div className="flex items-start gap-3">
+                  <Avatar name={user.fullName} src={user.avatarUrl ?? undefined} className="h-11 w-11 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">{user.fullName}</p>
+                    <p className="truncate text-xs text-muted-foreground">{user.email ?? "No email"}</p>
+                    <p className="text-xs text-muted-foreground">{user.department}</p>
+                  </div>
+                </div>
+
+                {/* Current role badge + status */}
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex rounded-full border border-foreground/20 bg-foreground/5 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-foreground">
+                    {user.role.replace("_", " ")}
+                  </span>
+                  <span className={`ml-auto h-2 w-2 rounded-full border border-foreground/30 ${user.status === "ACTIVE" ? "bg-foreground" : "bg-transparent"}`} title={user.status} />
+                  <span className="text-[10px] text-muted-foreground">{user.status}</span>
+                </div>
+
+                {/* Role change dropdown */}
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Change Role</p>
+                  {pendingRoleId === user.id ? (
+                    <div className="flex h-10 items-center gap-2 rounded-md border bg-muted px-3 text-xs text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Updating…
+                    </div>
+                  ) : (
+                    <Select
+                      value={user.role}
+                      onChange={(e) => changeRole.mutate({ id: user.id, role: e.target.value as UserRole })}
+                      disabled={pendingRoleId !== null}
+                    >
+                      <option value="STUDENT">🎓 Student</option>
+                      <option value="ALUMNI">🏢 Alumni</option>
+                      <option value="FACULTY">🔬 Faculty</option>
+                      <option value="ADMIN">🛡️ Admin</option>
+                    </Select>
+                  )}
                 </div>
               </div>
-              
-              <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Current Role</label>
-                <Select 
-                  defaultValue={user.role} 
-                  onValueChange={(val) => changeRole.mutate({ id: user.id, role: val as UserRole })}
-                  disabled={changeRole.isPending && changeRole.variables?.id === user.id}
-                >
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="STUDENT">Student</SelectItem>
-                    <SelectItem value="ALUMNI">Alumni</SelectItem>
-                    <SelectItem value="FACULTY">Faculty</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
-                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t pt-4">
+            <p className="text-xs text-muted-foreground">
+              Page {page} of {totalPages} · {totalCount} total users
+            </p>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1 || isFetching}>
+                <ChevronLeft className="h-4 w-4" /> Previous
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page >= totalPages || isFetching}>
+                Next <ChevronRight className="h-4 w-4" />
+              </Button>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

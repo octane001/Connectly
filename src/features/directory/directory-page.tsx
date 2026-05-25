@@ -24,6 +24,7 @@ import {
   type Profile,
 } from "@/types/domain";
 
+
 export function DirectoryPage() {
   const [filters, setFilters] = useState<DirectoryFilters>({ page: 1, pageSize: 12, role: "ALL", mentorship: "ALL" });
   const profiles = useQuery({

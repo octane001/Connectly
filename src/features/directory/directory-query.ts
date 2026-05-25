@@ -72,7 +72,7 @@ export function profileMatchesFilters(profile: Profile, filters: DirectoryFilter
     if (!isFacultyProfile(profile)) return false;
     if (!profile.faculty.researchInterests.some((item) => item.toLowerCase().includes(normalized.research!.toLowerCase()))) return false;
   }
-  if (normalized.company && !isAlumniProfile(profile) && profile.role !== "ADMIN" && profile.role !== "SUPER_ADMIN") return false;
+  if (normalized.company && !isAlumniProfile(profile) && profile.role !== "ADMIN") return false;
 
   return profile.status === "ACTIVE";
 }

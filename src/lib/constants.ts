@@ -1,6 +1,6 @@
 import type { AccountStatus, UserRole } from "@/types/domain";
 
-export const USER_ROLES: UserRole[] = ["STUDENT", "ALUMNI", "FACULTY", "ADMIN", "SUPER_ADMIN"];
+export const USER_ROLES: UserRole[] = ["STUDENT", "ALUMNI", "FACULTY", "ADMIN"];
 export const ACCOUNT_STATUSES: AccountStatus[] = ["INVITED", "PENDING", "ACTIVE", "SUSPENDED", "BANNED"];
 
 export const DEPARTMENTS = [

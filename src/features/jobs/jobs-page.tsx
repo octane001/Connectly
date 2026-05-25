@@ -33,7 +33,7 @@ export function JobsPage() {
     defaultValues: { title: "", organization: "", location: "", type: "INTERNSHIP", deadline: "", skills: "", description: "" },
   });
 
-  const isAdmin = profile.role === "ADMIN" || profile.role === "SUPER_ADMIN";
+  const isAdmin = profile.role === "ADMIN";
 
   const create = useMutation({
     mutationFn: (input: JobInput) => createJob({ ...input, postedBy: profile.id, posterRole: profile.role }),

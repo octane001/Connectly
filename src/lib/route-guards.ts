@@ -1,6 +1,6 @@
 import type { AccountStatus, Profile, UserRole } from "@/types/domain";
 
-const adminRoles: UserRole[] = ["ADMIN", "SUPER_ADMIN"];
+const adminRoles: UserRole[] = ["ADMIN"];
 const activeStatuses: AccountStatus[] = ["ACTIVE"];
 
 export function canAccessApp(profile: Profile | null) {
@@ -12,11 +12,11 @@ export function canAccessAdmin(profile: Profile | null) {
 }
 
 export function canManageContent(profile: Profile | null) {
-  return Boolean(profile && activeStatuses.includes(profile.status) && ["FACULTY", "ADMIN", "SUPER_ADMIN"].includes(profile.role));
+  return Boolean(profile && activeStatuses.includes(profile.status) && ["FACULTY", "ADMIN"].includes(profile.role));
 }
 
 export function canPostJobs(profile: Profile | null) {
-  return Boolean(profile && activeStatuses.includes(profile.status) && ["ALUMNI", "FACULTY", "ADMIN", "SUPER_ADMIN"].includes(profile.role));
+  return Boolean(profile && activeStatuses.includes(profile.status) && ["ALUMNI", "FACULTY", "ADMIN"].includes(profile.role));
 }
 
 export function onboardingTarget(profile: Profile | null) {

@@ -91,12 +91,12 @@ export function mapProfileRow(row: ProfileDirectoryRow | any): Profile {
     };
   }
 
-  if (base.role === "ADMIN" || base.role === "SUPER_ADMIN") {
+  if (base.role === "ADMIN") {
     return {
       ...base,
       role: base.role,
       admin: {
-        adminLevel: row.admin_level ?? (base.role === "SUPER_ADMIN" ? "SUPER" : "STAFF"),
+        adminLevel: row.admin_level ?? "STAFF",
         permissions: arrayValue(row.permissions),
         internalRole: row.internal_role ?? row.designation ?? null,
         institutionName: row.company ?? null,
@@ -178,7 +178,7 @@ export async function getCollegeName(): Promise<string> {
   const { data } = await (supabase as any)
     .from("profile_directory")
     .select("company")
-    .in("role", ["ADMIN", "SUPER_ADMIN"])
+    .in("role", ["ADMIN"])
     .not("company", "is", null)
     .limit(1)
     .maybeSingle();

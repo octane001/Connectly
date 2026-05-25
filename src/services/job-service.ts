@@ -45,7 +45,7 @@ export async function createJob(input: { title: string; organization: string; lo
     await delay();
     return { id: crypto.randomUUID(), title: input.title, organization: input.organization, location: input.location, type: input.type as any, deadline: input.deadline, skills: parseList(input.skills), description: input.description, postedBy: input.postedBy, status: "PUBLISHED", createdAt: new Date().toISOString() } as Job;
   }
-  const autoPublish = input.posterRole === "ADMIN" || input.posterRole === "SUPER_ADMIN";
+  const autoPublish = input.posterRole === "ADMIN";
   const { error } = await (supabase as any).from("jobs").insert({
     posted_by: input.postedBy, title: input.title, organization: input.organization, location: input.location,
     type: input.type as any, deadline: input.deadline, skills: parseList(input.skills), description: input.description,

@@ -24,7 +24,7 @@ import { getProfileDisplayOrganization, getProfileDisplayTitle } from "@/types/d
 export function MentorshipPage() {
   const profile = useAuthStore((s) => s.profile)!;
   const navigate = useNavigate();
-  const isAdmin = profile.role === "ADMIN" || profile.role === "SUPER_ADMIN";
+  const isAdmin = profile.role === "ADMIN";
   const isAlumniOrFaculty = profile.role === "ALUMNI" || profile.role === "FACULTY";
 
   const mentors = useQuery({ queryKey: ["mentor-recommendations", profile.id], queryFn: () => getRecommendedMentors(profile), enabled: !isAdmin });

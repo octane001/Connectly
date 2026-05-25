@@ -1,4 +1,4 @@
-export type UserRole = "ALUMNI" | "STUDENT" | "FACULTY" | "ADMIN" | "SUPER_ADMIN";
+export type UserRole = "ALUMNI" | "STUDENT" | "FACULTY" | "ADMIN";
 export type AccountStatus = "INVITED" | "PENDING" | "ACTIVE" | "SUSPENDED" | "BANNED";
 export type RequestStatus = "PENDING" | "ACCEPTED" | "DECLINED" | "CANCELLED";
 export type JobType = "INTERNSHIP" | "REFERRAL" | "RESEARCH" | "FREELANCE" | "STARTUP" | "FULL_TIME";
@@ -85,7 +85,7 @@ export interface FacultyProfile extends BaseProfile {
 }
 
 export interface AdminProfile extends BaseProfile {
-  role: "ADMIN" | "SUPER_ADMIN";
+  role: "ADMIN";
   admin: {
     adminLevel: string;
     permissions: string[];
@@ -109,7 +109,7 @@ export function isFacultyProfile(profile: Profile | null | undefined): profile i
 }
 
 export function isAdminProfile(profile: Profile | null | undefined): profile is AdminProfile {
-  return profile?.role === "ADMIN" || profile?.role === "SUPER_ADMIN";
+  return profile?.role === "ADMIN";
 }
 
 export function getProfileDisplayTitle(profile: Profile) {

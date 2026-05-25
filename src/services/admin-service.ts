@@ -5,6 +5,13 @@ import type { AnalyticsSnapshot, Profile, UserRole } from "@/types/domain";
 import { queryClient } from "@/lib/query-client";
 import { mapProfileRow } from "./profile-service";
 
+export interface UserListOptions {
+  search?: string;
+  role?: UserRole | "ALL";
+  page?: number;
+  pageSize?: number;
+}
+
 export async function getAnalytics(): Promise<AnalyticsSnapshot> {
   if (!supabase) {
     await delay();
@@ -83,9 +90,71 @@ export async function searchProfiles(query: string): Promise<Profile[]> {
   return (data ?? []).map(mapProfileRow);
 }
 
+export async function listAllUsers(options: UserListOptions = {}): Promise<{ data: Profile[]; count: number }> {
+  const { search = "", role = "ALL", page = 1, pageSize = 12 } = options;
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  if (!supabase) {
+    await delay();
+    let filtered = [...demoProfiles];
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = filtered.filter(p =>
+        p.fullName.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q)
+      );
+    }
+    if (role && role !== "ALL") {
+      filtered = filtered.filter(p => p.role === role);
+    }
+    return { data: filtered.slice(from, to + 1), count: filtered.length };
+  }
+
+  let query = supabase
+    .from("profile_directory")
+    .select("*", { count: "exact" })
+    .range(from, to)
+    .order("full_name", { ascending: true });
+
+  if (search) {
+    query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
+  }
+  if (role && role !== "ALL") {
+    query = query.eq("role", role);
+  }
+
+  const { data, count, error } = await query;
+  if (error) throw error;
+  return { data: (data ?? []).map(mapProfileRow), count: count ?? 0 };
+}
+
 export async function updateUserRole(profileId: string, role: UserRole): Promise<void> {
   if (!supabase) {
     await delay();
+    // In demo mode: mutate the in-memory profile so the UI reflects the change
+    const idx = demoProfiles.findIndex(p => p.id === profileId);
+    if (idx !== -1) {
+      const existing = demoProfiles[idx];
+      // Build a minimal valid profile shape for the new role
+      const base = {
+        ...existing,
+        role,
+        updatedAt: new Date().toISOString(),
+      };
+      let updated: Profile;
+      if (role === "ALUMNI") {
+        updated = { ...base, role: "ALUMNI", alumni: { graduationYear: null, company: null, designation: null, industry: null, experienceYears: null, mentorshipAvailable: false, interests: [], degree: null, specialization: null } };
+      } else if (role === "FACULTY") {
+        updated = { ...base, role: "FACULTY", faculty: { facultyId: null, academicTitle: null, designation: null, researchInterests: [], publications: [], interests: [], officeHours: null, officeLocation: null, mentorshipCapacity: 0 } };
+      } else if (role === "ADMIN") {
+        updated = { ...base, role: "ADMIN", admin: { adminLevel: "STAFF", permissions: [], internalRole: null, institutionName: null } };
+      } else {
+        updated = { ...base, role: "STUDENT", student: { studentId: null, currentYear: null, degree: null, specialization: null, cgpa: null, interests: [], careerGoals: null } };
+      }
+      demoProfiles[idx] = updated as Profile;
+    }
+    queryClient.invalidateQueries({ queryKey: ["user-list"] });
+    queryClient.invalidateQueries({ queryKey: ["user-search"] });
     return;
   }
 
@@ -98,6 +167,7 @@ export async function updateUserRole(profileId: string, role: UserRole): Promise
   queryClient.invalidateQueries({ queryKey: ["profiles"] });
   queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
   queryClient.invalidateQueries({ queryKey: ["user-search"] });
+  queryClient.invalidateQueries({ queryKey: ["user-list"] });
 }
 
 export async function transitionGraduatedStudents(): Promise<number> {

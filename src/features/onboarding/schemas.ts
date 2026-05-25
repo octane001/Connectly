@@ -60,7 +60,7 @@ export const facultyOnboardingSchema = z.object({
 
 export const adminProfileSchema = z.object({
   fullName: z.string().min(2),
-  role: z.enum(["ADMIN", "SUPER_ADMIN"]),
+  role: z.enum(["ADMIN"]),
   department: z.string().min(2),
   bio: z.string().max(800).optional().or(z.literal("")),
   city: z.string().max(120).optional().or(z.literal("")),
