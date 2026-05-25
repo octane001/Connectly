@@ -191,6 +191,12 @@ function AlumniFields({ form }: { form: UseFormReturn<OnboardingInput> }) {
       <Field label="Graduation year" error={(form.formState.errors as any).graduationYear?.message}>
         <Input type="number" {...form.register("graduationYear" as any)} />
       </Field>
+      <Field label="Degree" error={(form.formState.errors as any).degree?.message}>
+        <Input placeholder="B.Tech" {...form.register("degree" as any)} />
+      </Field>
+      <Field label="Specialization" error={(form.formState.errors as any).specialization?.message}>
+        <Input placeholder="Computer Science" {...form.register("specialization" as any)} />
+      </Field>
       <Field label="Company" error={(form.formState.errors as any).company?.message}>
         <Input {...form.register("company" as any)} />
       </Field>
@@ -204,6 +210,9 @@ function AlumniFields({ form }: { form: UseFormReturn<OnboardingInput> }) {
       </Field>
       <Field label="Experience years">
         <Input type="number" min={0} {...form.register("experienceYears" as any)} />
+      </Field>
+      <Field label="Interests" error={(form.formState.errors as any).interests?.message}>
+        <Input placeholder="Software Architecture, Career Guidance" {...form.register("interests" as any)} />
       </Field>
       <Field label="Mentorship categories">
         <Input placeholder="Career Guidance, Resume Review" {...form.register("mentorCategories" as any)} />
@@ -231,11 +240,17 @@ function FacultyFields({ form }: { form: UseFormReturn<OnboardingInput> }) {
       <Field label="Office location">
         <Input {...form.register("officeLocation" as any)} />
       </Field>
+      <Field label="Office hours">
+        <Input placeholder="Mon-Fri, 2 PM - 4 PM" {...form.register("officeHours" as any)} />
+      </Field>
       <Field label="Mentorship capacity">
         <Input type="number" min={0} {...form.register("mentorshipCapacity" as any)} />
       </Field>
       <Field label="Research interests" error={(form.formState.errors as any).researchInterests?.message}>
         <Input placeholder="Machine Learning, Education Technology" {...form.register("researchInterests" as any)} />
+      </Field>
+      <Field label="Interests (General)" error={(form.formState.errors as any).interests?.message}>
+        <Input placeholder="Student Mentoring, Research Guidance" {...form.register("interests" as any)} />
       </Field>
       <div className="space-y-2 md:col-span-2">
         <Label>Publications</Label>
@@ -277,6 +292,9 @@ function onboardingDefaults(profile: Profile | null): Partial<OnboardingInput> {
       experienceYears: profile.alumni.experienceYears ?? 0,
       mentorshipAvailable: profile.alumni.mentorshipAvailable,
       mentorCategories: profile.mentorCategories.join(", "),
+      interests: profile.alumni.interests.join(", "),
+      degree: profile.alumni.degree ?? "B.Tech",
+      specialization: profile.alumni.specialization ?? profile.department,
     };
   }
 
@@ -289,6 +307,8 @@ function onboardingDefaults(profile: Profile | null): Partial<OnboardingInput> {
       designation: profile.faculty.designation ?? "",
       researchInterests: profile.faculty.researchInterests.join(", "),
       publications: profile.faculty.publications.join(", "),
+      interests: profile.faculty.interests.join(", "),
+      officeHours: profile.faculty.officeHours ?? "",
       officeLocation: profile.faculty.officeLocation ?? "",
       mentorshipCapacity: profile.faculty.mentorshipCapacity,
     };
@@ -339,6 +359,9 @@ function buildOnboardingProfile(profile: Profile, input: OnboardingInput): Profi
         industry: input.industry,
         experienceYears: input.experienceYears,
         mentorshipAvailable: input.mentorshipAvailable,
+        interests: split(input.interests),
+        degree: input.degree,
+        specialization: input.specialization,
       },
     };
   }
@@ -357,6 +380,8 @@ function buildOnboardingProfile(profile: Profile, input: OnboardingInput): Profi
         designation: input.designation,
         researchInterests: split(input.researchInterests),
         publications: split(input.publications ?? ""),
+        interests: split(input.interests),
+        officeHours: input.officeHours ?? null,
         officeLocation: input.officeLocation ?? null,
         mentorshipCapacity: input.mentorshipCapacity,
       },

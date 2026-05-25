@@ -65,9 +65,13 @@ export function mapProfileRow(row: ProfileDirectoryRow | any): Profile {
         industry: row.industry ?? null,
         experienceYears: row.experience_years ?? null,
         mentorshipAvailable,
+        interests: arrayValue(row.interests),
+        degree: row.degree ?? null,
+        specialization: row.specialization ?? null,
       },
     };
   }
+
 
   if (base.role === "FACULTY") {
     return {
@@ -79,6 +83,8 @@ export function mapProfileRow(row: ProfileDirectoryRow | any): Profile {
         designation: row.designation ?? null,
         researchInterests: arrayValue(row.research_interests),
         publications: arrayValue(row.publications),
+        interests: arrayValue(row.interests),
+        officeHours: row.office_hours ?? null,
         officeLocation: row.office_location ?? null,
         mentorshipCapacity,
       },
@@ -320,6 +326,9 @@ async function saveRoleProfile(profile: Profile, updatedAt: string) {
       industry: profile.alumni.industry || null,
       experience_years: profile.alumni.experienceYears ?? null,
       mentorship_available: profile.alumni.mentorshipAvailable,
+      interests: profile.alumni.interests || [],
+      degree: profile.alumni.degree || null,
+      specialization: profile.alumni.specialization || null,
       updated_at: updatedAt,
     }, { onConflict: "profile_id" });
     if (error) throw error;
@@ -335,6 +344,8 @@ async function saveRoleProfile(profile: Profile, updatedAt: string) {
       designation: profile.faculty.designation || null,
       research_interests: profile.faculty.researchInterests,
       publications: profile.faculty.publications,
+      interests: profile.faculty.interests || [],
+      office_hours: profile.faculty.officeHours || null,
       office_location: profile.faculty.officeLocation || null,
       mentorship_capacity: profile.faculty.mentorshipCapacity,
       updated_at: updatedAt,

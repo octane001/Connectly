@@ -63,6 +63,9 @@ export interface AlumniProfile extends BaseProfile {
     industry?: string | null;
     experienceYears?: number | null;
     mentorshipAvailable: boolean;
+    interests: string[];
+    degree?: string | null;
+    specialization?: string | null;
   };
 }
 
@@ -74,6 +77,8 @@ export interface FacultyProfile extends BaseProfile {
     designation?: string | null;
     researchInterests: string[];
     publications: string[];
+    interests: string[];
+    officeHours?: string | null;
     officeLocation?: string | null;
     mentorshipCapacity: number;
   };
@@ -132,8 +137,17 @@ export function getProfileStudentId(profile: Profile) {
   return isStudentProfile(profile) ? profile.student.studentId ?? null : null;
 }
 
+export function getProfileDegree(profile: Profile) {
+  if (isStudentProfile(profile)) return profile.student.degree ?? null;
+  if (isAlumniProfile(profile)) return profile.alumni.degree ?? null;
+  return null;
+}
+
 export function getProfileInterests(profile: Profile) {
-  return isStudentProfile(profile) ? profile.student.interests : [];
+  if (isStudentProfile(profile)) return profile.student.interests;
+  if (isAlumniProfile(profile)) return profile.alumni.interests;
+  if (isFacultyProfile(profile)) return profile.faculty.interests;
+  return [];
 }
 
 export function getProfileCareerGoals(profile: Profile) {
@@ -142,6 +156,20 @@ export function getProfileCareerGoals(profile: Profile) {
 
 export function getProfileResearchInterests(profile: Profile) {
   return isFacultyProfile(profile) ? profile.faculty.researchInterests : [];
+}
+
+export interface Experience {
+  id: string;
+  profileId: string;
+  title: string;
+  organization: string;
+  location?: string | null;
+  startDate: string;
+  endDate?: string | null;
+  description?: string | null;
+  isInternship: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface DirectoryFilters {

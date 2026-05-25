@@ -39,6 +39,9 @@ export const alumniOnboardingSchema = z.object({
   experienceYears: z.coerce.number().min(0).max(80),
   mentorshipAvailable: z.boolean().default(false),
   mentorCategories: optionalCsvText,
+  interests: csvText,
+  degree: z.string().min(2, "Degree is required"),
+  specialization: z.string().min(2, "Specialization is required"),
 });
 
 export const facultyOnboardingSchema = z.object({
@@ -49,7 +52,9 @@ export const facultyOnboardingSchema = z.object({
   designation: z.string().min(2, "Designation is required"),
   researchInterests: csvText,
   publications: optionalCsvText,
+  interests: csvText,
   officeLocation: z.string().max(120).optional().or(z.literal("")),
+  officeHours: z.string().max(120).optional().or(z.literal("")),
   mentorshipCapacity: z.coerce.number().min(0).max(50),
 });
 

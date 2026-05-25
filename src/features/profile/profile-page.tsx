@@ -188,6 +188,8 @@ function AlumniFields({ form }: { form: UseFormReturn<ProfileInput> }) {
   return (
     <>
       <div className="space-y-2"><Label>Graduation year</Label><Input type="number" {...form.register("graduationYear" as any)} /></div>
+      <div className="space-y-2"><Label>Degree</Label><Input {...form.register("degree" as any)} /></div>
+      <div className="space-y-2"><Label>Specialization</Label><Input {...form.register("specialization" as any)} /></div>
       <div className="space-y-2"><Label>Company</Label><Input {...form.register("company" as any)} /></div>
       <div className="space-y-2"><Label>Designation</Label><Input {...form.register("designation" as any)} /></div>
       <div className="space-y-2">
@@ -197,6 +199,7 @@ function AlumniFields({ form }: { form: UseFormReturn<ProfileInput> }) {
         </Select>
       </div>
       <div className="space-y-2"><Label>Experience years</Label><Input type="number" min={0} {...form.register("experienceYears" as any)} /></div>
+      <div className="space-y-2"><Label>Interests</Label><Input {...form.register("interests" as any)} /></div>
       <div className="space-y-2"><Label>Mentorship categories</Label><Input {...form.register("mentorCategories" as any)} /></div>
       <label className="flex items-center gap-2 rounded-md border p-3 text-sm md:col-span-2">
         <input type="checkbox" {...form.register("mentorshipAvailable" as any)} />
@@ -213,8 +216,10 @@ function FacultyFields({ form }: { form: UseFormReturn<ProfileInput> }) {
       <div className="space-y-2"><Label>Academic title</Label><Input {...form.register("academicTitle" as any)} /></div>
       <div className="space-y-2"><Label>Designation</Label><Input {...form.register("designation" as any)} /></div>
       <div className="space-y-2"><Label>Office location</Label><Input {...form.register("officeLocation" as any)} /></div>
+      <div className="space-y-2"><Label>Office hours</Label><Input {...form.register("officeHours" as any)} /></div>
       <div className="space-y-2"><Label>Mentorship capacity</Label><Input type="number" min={0} {...form.register("mentorshipCapacity" as any)} /></div>
       <div className="space-y-2"><Label>Research interests</Label><Input {...form.register("researchInterests" as any)} /></div>
+      <div className="space-y-2"><Label>Interests (General)</Label><Input {...form.register("interests" as any)} /></div>
       <div className="space-y-2 md:col-span-2"><Label>Publications</Label><Textarea {...form.register("publications" as any)} /></div>
     </>
   );
@@ -254,6 +259,9 @@ function profileDefaults(profile: Profile | null): Partial<ProfileInput> {
       experienceYears: profile.alumni.experienceYears ?? 0,
       mentorshipAvailable: profile.alumni.mentorshipAvailable,
       mentorCategories: profile.mentorCategories.join(", "),
+      interests: profile.alumni.interests.join(", "),
+      degree: profile.alumni.degree ?? "B.Tech",
+      specialization: profile.alumni.specialization ?? profile.department,
     };
   }
 
@@ -266,6 +274,8 @@ function profileDefaults(profile: Profile | null): Partial<ProfileInput> {
       designation: profile.faculty.designation ?? "",
       researchInterests: profile.faculty.researchInterests.join(", "),
       publications: profile.faculty.publications.join(", "),
+      interests: profile.faculty.interests.join(", "),
+      officeHours: profile.faculty.officeHours ?? "",
       officeLocation: profile.faculty.officeLocation ?? "",
       mentorshipCapacity: profile.faculty.mentorshipCapacity,
     };
@@ -325,6 +335,9 @@ function buildProfile(profile: Profile, input: ProfileInput): Profile {
         industry: input.industry,
         experienceYears: input.experienceYears,
         mentorshipAvailable: input.mentorshipAvailable,
+        interests: split(input.interests),
+        degree: input.degree,
+        specialization: input.specialization,
       },
     };
   }
@@ -343,6 +356,8 @@ function buildProfile(profile: Profile, input: ProfileInput): Profile {
         designation: input.designation,
         researchInterests: split(input.researchInterests),
         publications: split(input.publications ?? ""),
+        interests: split(input.interests),
+        officeHours: input.officeHours ?? null,
         officeLocation: input.officeLocation ?? null,
         mentorshipCapacity: input.mentorshipCapacity,
       },

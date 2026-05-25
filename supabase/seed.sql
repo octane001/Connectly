@@ -1,3 +1,5 @@
+-- Connectly Seed Data: Updated for role-specific profile tables.
+
 insert into public.roles (name, description) values
   ('STUDENT', 'Current student seeking guidance and opportunities'),
   ('ALUMNI', 'Verified graduate who can network, mentor, and post opportunities'),
@@ -18,36 +20,55 @@ insert into public.skills (name, category) values
   ('Mentoring', 'Career')
 on conflict (name) do nothing;
 
+-- 1. Base Profiles
 insert into public.profiles (
-  id, full_name, email, role, status, department, graduation_year, bio, company, designation,
-  industry, city, country, career_goals, interests, technology_stack, achievements, projects,
-  is_mentor, mentor_categories, mentorship_capacity, profile_completeness
+  id, full_name, email, role, status, department, bio, city, country, technology_stack, achievements, projects, profile_completeness
 ) values
-  ('00000000-0000-0000-0000-000000000101', 'Aarav Mehta', 'aarav@student.connectly.edu', 'STUDENT', 'ACTIVE', 'Computer Science', 2027,
-   'Final year student focused on full-stack engineering and machine learning.', null, 'Student', 'Software', 'Bengaluru', 'India',
-   'Become a product-minded software engineer.', '{"Machine Learning","Product Engineering","Startups"}', '{"React","Node.js","Supabase","Python"}',
-   '{"Built a campus placement tracker"}', '{"Connectly FYP"}', false, '{}', 0, 82),
-  ('00000000-0000-0000-0000-000000000102', 'Nisha Rao', 'nisha.rao@example.com', 'ALUMNI', 'ACTIVE', 'Computer Science', 2018,
-   'Senior software engineer building collaboration products at scale.', 'Atlassian', 'Senior Software Engineer', 'Software', 'Bengaluru', 'India',
-   null, '{"Developer Tools","Career Guidance","Machine Learning"}', '{"React","GraphQL","PostgreSQL","AWS"}',
-   '{"Mentored 40+ students"}', '{"Design System Migration"}', true, '{"Career Guidance","Mock Interview","Resume Review"}', 6, 96),
-  ('00000000-0000-0000-0000-000000000103', 'Rohan Iyer', 'rohan.iyer@example.com', 'ALUMNI', 'ACTIVE', 'Information Technology', 2017,
-   'Data platform engineer working on recommendations and analytics pipelines.', 'Razorpay', 'Lead Data Engineer', 'FinTech', 'Mumbai', 'India',
-   null, '{"FinTech","Machine Learning","Career Guidance"}', '{"Python","Spark","PostgreSQL","Airflow"}',
-   '{"Built fraud analytics pipelines"}', '{"Transaction Risk Monitor"}', true, '{"Project Advice","Career Guidance","Higher Studies"}', 4, 91),
-  ('00000000-0000-0000-0000-000000000104', 'Dr. Meera Sharma', 'meera.sharma@connectly.edu', 'FACULTY', 'ACTIVE', 'Computer Science', null,
-   'Professor researching human-centered machine learning and student employability.', 'Connectly University', 'Professor', 'Research', 'Pune', 'India',
-   null, '{"Research Guidance","Higher Studies","Placements"}', '{"Python","TensorFlow","PostgreSQL"}',
-   '{"Published 30+ research papers"}', '{"Student Skill Graph"}', true, '{"Research Guidance","Higher Studies","Project Advice"}', 8, 94),
-  ('00000000-0000-0000-0000-000000000105', 'Priya Menon', 'admin@connectly.edu', 'ADMIN', 'ACTIVE', 'Placement Cell', null,
-   'Admin for alumni relations, placements, and university engagement programs.', 'Connectly University', 'Alumni Relations Officer', 'Education', 'Pune', 'India',
-   null, '{"Alumni Relations","Placement Support"}', '{}', '{"Organized 20+ events"}', '{}', false, '{}', 0, 88)
+  ('00000000-0000-0000-0000-000000000101', 'Aarav Mehta', 'aarav@student.connectly.edu', 'STUDENT', 'ACTIVE', 'Computer Science', 
+   'Final year student focused on full-stack engineering and machine learning.', 'Bengaluru', 'India', 
+   '{"React","Node.js","Supabase","Python"}', '{"Built a campus placement tracker"}', '{"Connectly FYP"}', 82),
+  ('00000000-0000-0000-0000-000000000102', 'Nisha Rao', 'nisha.rao@example.com', 'ALUMNI', 'ACTIVE', 'Computer Science', 
+   'Senior software engineer building collaboration products at scale.', 'Bengaluru', 'India', 
+   '{"React","GraphQL","PostgreSQL","AWS"}', '{"Mentored 40+ students"}', '{"Design System Migration"}', 96),
+  ('00000000-0000-0000-0000-000000000103', 'Rohan Iyer', 'rohan.iyer@example.com', 'ALUMNI', 'ACTIVE', 'Information Technology', 
+   'Data platform engineer working on recommendations and analytics pipelines.', 'Mumbai', 'India', 
+   '{"Python","Spark","PostgreSQL","Airflow"}', '{"Built fraud analytics pipelines"}', '{"Transaction Risk Monitor"}', 91),
+  ('00000000-0000-0000-0000-000000000104', 'Dr. Meera Sharma', 'meera.sharma@connectly.edu', 'FACULTY', 'ACTIVE', 'Computer Science', 
+   'Professor researching human-centered machine learning and student employability.', 'Pune', 'India', 
+   '{"Python","TensorFlow","PostgreSQL"}', '{"Published 30+ research papers"}', '{"Student Skill Graph"}', 94),
+  ('00000000-0000-0000-0000-000000000105', 'Priya Menon', 'admin@connectly.edu', 'ADMIN', 'ACTIVE', 'Placement Cell', 
+   'Admin for alumni relations, placements, and university engagement programs.', 'Pune', 'India', 
+   '{}', '{"Organized 20+ events"}', '{}', 88)
 on conflict (id) do nothing;
 
+-- 2. Role-specific Profiles
+insert into public.student_profiles (profile_id, student_id, current_year, degree, specialization, cgpa, interests, career_goals)
+values
+  ('00000000-0000-0000-0000-000000000101', 'STU2023001', 4, 'B.Tech', 'Computer Science', 8.5, '{"Machine Learning","Product Engineering","Startups"}', 'Become a product-minded software engineer.')
+on conflict (profile_id) do nothing;
+
+insert into public.alumni_profiles (profile_id, graduation_year, company, designation, industry, experience_years, mentorship_available, interests, degree)
+values
+  ('00000000-0000-0000-0000-000000000102', 2018, 'Atlassian', 'Senior Software Engineer', 'Software', 6, true, '{"Developer Tools","Career Guidance","Machine Learning"}', 'B.Tech'),
+  ('00000000-0000-0000-0000-000000000103', 2017, 'Razorpay', 'Lead Data Engineer', 'FinTech', 7, true, '{"FinTech","Machine Learning","Career Guidance"}', 'B.Tech')
+on conflict (profile_id) do nothing;
+
+insert into public.faculty_profiles (profile_id, faculty_id, academic_title, designation, research_interests, publications, office_location, mentorship_capacity, interests, office_hours)
+values
+  ('00000000-0000-0000-0000-000000000104', 'FAC001', 'Professor', 'Professor', '{"Human-Centered ML","Student Employability"}', '{"Paper A","Paper B"}', 'Building 4, Room 202', 8, '{"Research Guidance","Higher Studies","Project Advice"}', 'Mon-Wed, 2-4 PM')
+on conflict (profile_id) do nothing;
+
+insert into public.admin_profiles (profile_id, admin_level, internal_role, institution_name)
+values
+  ('00000000-0000-0000-0000-000000000105', 'STAFF', 'Alumni Relations Officer', 'Connectly University')
+on conflict (profile_id) do nothing;
+
+-- 3. Privacy Settings
 insert into public.privacy_settings (profile_id)
 select id from public.profiles
 on conflict (profile_id) do nothing;
 
+-- 4. Mentorship Preferences
 insert into public.mentorship_preferences (profile_id, is_available, categories, industries, max_requests_per_month)
 values
   ('00000000-0000-0000-0000-000000000102', true, '{"Career Guidance","Mock Interview","Resume Review"}', '{"Software"}', 6),
@@ -55,6 +76,7 @@ values
   ('00000000-0000-0000-0000-000000000104', true, '{"Research Guidance","Higher Studies","Project Advice"}', '{"Research","Education"}', 8)
 on conflict (profile_id) do nothing;
 
+-- 5. User Skills
 insert into public.user_skills (profile_id, skill_id)
 select profile_id, skills.id
 from (
@@ -72,6 +94,13 @@ from (
     ('00000000-0000-0000-0000-000000000104'::uuid, 'Research')
 ) as mapped(profile_id, skill_name)
 join public.skills on skills.name = mapped.skill_name
+on conflict do nothing;
+
+-- 6. Experience (New Table)
+insert into public.experience (profile_id, title, organization, start_date, end_date, description, is_internship)
+values
+  ('00000000-0000-0000-0000-000000000101', 'Frontend Developer Intern', 'Tech Startups Inc', '2023-05-01', '2023-08-01', 'Worked on React components.', true),
+  ('00000000-0000-0000-0000-000000000102', 'Software Engineer', 'Initial Corp', '2018-07-01', '2020-12-31', 'Full stack development.', false)
 on conflict do nothing;
 
 insert into public.alumni_imports (email, full_name, department, graduation_year, company, designation)

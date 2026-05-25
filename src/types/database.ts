@@ -49,6 +49,9 @@ export interface Database {
         industry: string | null;
         experience_years: number | null;
         mentorship_available: boolean;
+        interests: string[];
+        degree: string | null;
+        specialization: string | null;
         created_at: string;
         updated_at: string;
       }>;
@@ -59,10 +62,35 @@ export interface Database {
         designation: string | null;
         research_interests: string[];
         publications: string[];
+        interests: string[];
+        office_hours: string | null;
         office_location: string | null;
         mentorship_capacity: number;
         created_at: string;
         updated_at: string;
+      }>;
+      experience: TableDef<{
+        id: string;
+        profile_id: string;
+        title: string;
+        organization: string;
+        location: string | null;
+        start_date: string;
+        end_date: string | null;
+        description: string | null;
+        is_internship: boolean;
+        created_at: string;
+        updated_at: string;
+      }>;
+      audit_logs: TableDef<{
+        id: string;
+        admin_id: string | null;
+        action: string;
+        entity_type: string;
+        entity_id: string | null;
+        old_data: Json | null;
+        new_data: Json | null;
+        created_at: string;
       }>;
       admin_profiles: TableDef<{
         profile_id: string;
@@ -204,6 +232,7 @@ export interface Database {
           academic_title: string | null;
           publications: string[];
           research_interests: string[];
+          office_hours: string | null;
           is_mentor: boolean;
           mentor_categories: string[];
           mentorship_capacity: number;
