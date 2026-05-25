@@ -7,7 +7,6 @@ import type { Database } from "@/types/database";
 import type { Job } from "@/types/domain";
 
 type JobCardRow = Database["public"]["Views"]["job_cards"]["Row"];
-type JobRow = Database["public"]["Tables"]["jobs"]["Row"];
 
 function parseList(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean);

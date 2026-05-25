@@ -1,7 +1,9 @@
-import { demoAnalytics } from "@/lib/demo-data";
+import { demoAnalytics, demoProfiles } from "@/lib/demo-data";
 import { supabase } from "@/lib/supabase";
 import { delay } from "@/lib/utils";
-import type { AnalyticsSnapshot } from "@/types/domain";
+import type { AnalyticsSnapshot, Profile, UserRole } from "@/types/domain";
+import { queryClient } from "@/lib/query-client";
+import { mapProfileRow } from "./profile-service";
 
 export async function getAnalytics(): Promise<AnalyticsSnapshot> {
   if (!supabase) {
@@ -60,4 +62,60 @@ async function getMonthlyEngagement(): Promise<AnalyticsSnapshot["monthlyEngagem
   }
 
   return months;
+}
+
+export async function searchProfiles(query: string): Promise<Profile[]> {
+  if (!supabase) {
+    await delay();
+    return demoProfiles.filter(p => 
+      p.fullName.toLowerCase().includes(query.toLowerCase()) || 
+      p.email?.toLowerCase().includes(query.toLowerCase())
+    );
+  }
+
+  const { data, error } = await supabase
+    .from("profile_directory")
+    .select("*")
+    .or(`full_name.ilike.%${query}%,email.ilike.%${query}%`)
+    .limit(20);
+
+  if (error) throw error;
+  return (data ?? []).map(mapProfileRow);
+}
+
+export async function updateUserRole(profileId: string, role: UserRole): Promise<void> {
+  if (!supabase) {
+    await delay();
+    return;
+  }
+
+  const { error } = await (supabase as any).rpc("admin_change_user_role", {
+    target_profile_id: profileId,
+    new_role: role
+  });
+
+  if (error) throw error;
+  queryClient.invalidateQueries({ queryKey: ["profiles"] });
+  queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+  queryClient.invalidateQueries({ queryKey: ["user-search"] });
+}
+
+export async function transitionGraduatedStudents(): Promise<number> {
+  if (!supabase) {
+    await delay();
+    return 0;
+  }
+
+  const { data, error } = await (supabase as any).rpc("admin_transition_graduated_students");
+
+  if (error) throw error;
+  
+  const count = data?.[0]?.affected_count ?? 0;
+  
+  if (count > 0) {
+    queryClient.invalidateQueries({ queryKey: ["profiles"] });
+    queryClient.invalidateQueries({ queryKey: ["admin-analytics"] });
+  }
+  
+  return count;
 }

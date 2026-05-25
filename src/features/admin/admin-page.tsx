@@ -1,14 +1,29 @@
 import { useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { BadgeCheck, Ban, Briefcase, Download, FileSpreadsheet, Loader2, Shield, Sparkles, Upload, Users } from "lucide-react";
+import { BadgeCheck, Ban, Briefcase, Download, FileSpreadsheet, GraduationCap, Loader2, Search, Shield, Sparkles, Upload, UserCog, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PageHeader } from "@/components/page-header";
 import { useToast } from "@/components/ui/use-toast";
-import { getAnalytics, listPendingUsers, listPendingJobs, approveUser, rejectUser, moderateJob, bulkImportAlumni, type AlumniImportRow } from "@/lib/api";
+import { 
+  getAnalytics, 
+  listPendingUsers, 
+  listPendingJobs, 
+  approveUser, 
+  rejectUser, 
+  moderateJob, 
+  bulkImportAlumni, 
+  searchProfiles,
+  updateUserRole,
+  transitionGraduatedStudents,
+  type AlumniImportRow 
+} from "@/lib/api";
+import type { UserRole } from "@/types/domain";
 
 export function AdminPage() {
   const analytics = useQuery({ queryKey: ["admin-analytics"], queryFn: getAnalytics });
@@ -30,6 +45,16 @@ export function AdminPage() {
   const jobMod = useMutation({
     mutationFn: ({ id, status }: { id: string; status: "PUBLISHED" | "ARCHIVED" }) => moderateJob(id, status),
     onSuccess: () => push({ kind: "success", title: "Job updated", description: "Job status has been changed." }),
+  });
+
+  const transitionStudents = useMutation({
+    mutationFn: () => transitionGraduatedStudents(),
+    onSuccess: (count) => push({ 
+      kind: "success", 
+      title: "Transition complete", 
+      description: `${count} students have been promoted to Alumni based on their graduation year.` 
+    }),
+    onError: (err: any) => push({ kind: "error", title: "Transition failed", description: err.message }),
   });
 
   const stats = [
@@ -125,42 +150,150 @@ export function AdminPage() {
         </Card>
       </div>
 
+      {/* User Management */}
+      <UserManagement />
+
       {/* Bulk Alumni Upload */}
       <BulkAlumniUpload />
 
-      {/* Job Moderation */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Job moderation</CardTitle>
-          <CardDescription>Review and approve or archive submitted job postings ({pendingJobs.data?.length ?? 0} pending).</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {(pendingJobs.data ?? []).length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">No jobs awaiting moderation.</p>
-          ) : null}
-          {(pendingJobs.data ?? []).map((job) => (
-            <div key={job.id} className="rounded-lg border p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-medium">{job.title}</p>
-                  <p className="text-sm text-muted-foreground">{job.organization} · {job.location}</p>
+      <div className="grid gap-6 xl:grid-cols-2">
+        {/* Job Moderation */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Job moderation</CardTitle>
+            <CardDescription>Review and approve or archive submitted job postings ({pendingJobs.data?.length ?? 0} pending).</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {(pendingJobs.data ?? []).length === 0 ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">No jobs awaiting moderation.</p>
+            ) : null}
+            {(pendingJobs.data ?? []).map((job) => (
+              <div key={job.id} className="rounded-lg border p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-medium">{job.title}</p>
+                    <p className="text-sm text-muted-foreground">{job.organization} · {job.location}</p>
+                  </div>
+                  <Badge variant="warning">{job.status}</Badge>
                 </div>
-                <Badge variant="warning">{job.status}</Badge>
+                <p className="mt-2 text-sm text-muted-foreground">{job.description.slice(0, 120)}...</p>
+                <div className="mt-3 flex gap-2">
+                  <Button size="sm" onClick={() => jobMod.mutate({ id: job.id, status: "PUBLISHED" })}>
+                    <BadgeCheck className="h-4 w-4" /> Publish
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => jobMod.mutate({ id: job.id, status: "ARCHIVED" })}>
+                    <Ban className="h-4 w-4" /> Archive
+                  </Button>
+                </div>
               </div>
-              <p className="mt-2 text-sm text-muted-foreground">{job.description.slice(0, 120)}...</p>
-              <div className="mt-3 flex gap-2">
-                <Button size="sm" onClick={() => jobMod.mutate({ id: job.id, status: "PUBLISHED" })}>
-                  <BadgeCheck className="h-4 w-4" /> Publish
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => jobMod.mutate({ id: job.id, status: "ARCHIVED" })}>
-                  <Ban className="h-4 w-4" /> Archive
-                </Button>
+            ))}
+          </CardContent>
+        </Card>
+
+        {/* System Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>System actions</CardTitle>
+            <CardDescription>Automated workflows for maintenance and data integrity.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Graduate Students</p>
+                <p className="text-xs text-muted-foreground">Transition students to Alumni role if their graduation year has passed.</p>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => transitionStudents.mutate()}
+                disabled={transitionStudents.isPending}
+              >
+                {transitionStudents.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GraduationCap className="mr-2 h-4 w-4" />}
+                Run Transition
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ─── User Management Component ───────────────────────────────────── */
+
+function UserManagement() {
+  const [search, setSearch] = useState("");
+  const users = useQuery({ 
+    queryKey: ["user-search", search], 
+    queryFn: () => searchProfiles(search),
+    enabled: search.length > 2
+  });
+  const { push } = useToast();
+
+  const changeRole = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: UserRole }) => updateUserRole(id, role),
+    onSuccess: () => push({ kind: "success", title: "Role updated", description: "User role has been changed successfully." }),
+    onError: (err: any) => push({ kind: "error", title: "Update failed", description: err.message }),
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><UserCog className="h-5 w-5" /> User Management</CardTitle>
+        <CardDescription>Search for users to update their roles or manage their accounts.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input 
+            placeholder="Search by name or email..." 
+            className="pl-10"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+
+        {users.isLoading && <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}
+        
+        {users.data && users.data.length === 0 && (
+          <p className="py-8 text-center text-sm text-muted-foreground">No users found matching "{search}"</p>
+        )}
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {(users.data ?? []).map((user) => (
+            <div key={user.id} className="flex flex-col justify-between gap-3 rounded-lg border p-4">
+              <div className="flex items-center gap-3">
+                <Avatar name={user.fullName} src={user.avatarUrl ?? undefined} className="h-10 w-10" />
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{user.fullName}</p>
+                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Current Role</label>
+                <Select 
+                  defaultValue={user.role} 
+                  onValueChange={(val) => changeRole.mutate({ id: user.id, role: val as UserRole })}
+                  disabled={changeRole.isPending && changeRole.variables?.id === user.id}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STUDENT">Student</SelectItem>
+                    <SelectItem value="ALUMNI">Alumni</SelectItem>
+                    <SelectItem value="FACULTY">Faculty</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           ))}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

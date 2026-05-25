@@ -144,7 +144,7 @@ export function FeedPage() {
                           {post.comments}
                         </Button>
                       </div>
-                      {expandedComments === post.id ? <CommentsSection postId={post.id} profileId={profile.id} commentText={commentText} setCommentText={setCommentText} onSubmit={() => commentMutation.mutate(post.id)} isPending={commentMutation.isPending} /> : null}
+                      {expandedComments === post.id ? <CommentsSection postId={post.id} commentText={commentText} setCommentText={setCommentText} onSubmit={() => commentMutation.mutate(post.id)} isPending={commentMutation.isPending} /> : null}
                     </>
                   )}
                 </CardContent>
@@ -200,8 +200,8 @@ export function FeedPage() {
   );
 }
 
-function CommentsSection({ postId, profileId, commentText, setCommentText, onSubmit, isPending }: {
-  postId: string; profileId: string; commentText: string; setCommentText: (v: string) => void; onSubmit: () => void; isPending: boolean;
+function CommentsSection({ postId, commentText, setCommentText, onSubmit, isPending }: {
+  postId: string; commentText: string; setCommentText: (v: string) => void; onSubmit: () => void; isPending: boolean;
 }) {
   const comments = useQuery({ queryKey: ["comments", postId], queryFn: () => listComments(postId) });
 
