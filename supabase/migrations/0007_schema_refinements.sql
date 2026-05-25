@@ -90,9 +90,15 @@ create policy "Admins can read audit logs" on public.audit_logs
 -- 5. Message Threads Uniqueness and Integrity
 -- Ensure one thread per mentorship request
 alter table public.message_threads
+drop constraint if exists message_threads_mentorship_request_id_key;
+
+alter table public.message_threads
 add constraint message_threads_mentorship_request_id_key unique (mentorship_request_id);
 
 -- 6. Event Registrations Status Constraint
+alter table public.event_registrations
+drop constraint if exists event_registrations_status_check;
+
 alter table public.event_registrations
 add constraint event_registrations_status_check
 check (status in ('REGISTERED', 'ATTENDED', 'CANCELLED', 'WAITLISTED'));
